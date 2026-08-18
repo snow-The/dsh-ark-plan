@@ -1,0 +1,27 @@
+{
+  "name": "dsh-ark-plan",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./lib/index.js",
+  "description": "Correctly activate DeepSeek v4 flash on the Volcano Ark plan API for DeepSeek Harness: default config injection (ark provider + reasoningEfforts + reasoningEffort=max) plus an ark_plan_doctor self-check tool.",
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "volcengine",
+    "ark",
+    "deepseek-v4-flash"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,34 @@
+# dsh-ark-plan — activate DeepSeek v4 flash on the Volcano Ark plan API.
+#
+# These are DEFAULTS: dsh-settings registers the entry config as the base of
+# each settings section, so a user's own settings.yaml always wins over these
+# values. A fresh profile gets a working ark route + reasoningEffort=max with
+# no manual YAML; a profile that already configures the same keys keeps its own.
+- id: llm-pi-ai
+  config:
+    providers:
+      ark:
+        displayName: ark
+        apiKeyEnv: ARK_API_KEY
+        api: openai-responses
+        baseURL: https://ark.cn-beijing.volces.com/api/plan/v3
+        models:
+          - id: deepseek-v4-flash
+            name: deepseek-v4-flash
+            # Without this, the model is judged non-reasoning and the pi-ai
+            # responses adapter skips the whole reasoning branch — effort is
+            # never sent and the endpoint silently uses its default (high).
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+- id: agent-default-model
+  config:
+    # modlens-ark = the @liustack/modlens vision wrapper around the ark route
+    # (gives the text-only model image-input capability). Without modlens
+    # installed, point this at the plain "ark" provider instead.
+    provider: modlens-ark
+    model: deepseek-v4-flash
+    # Must accompany reasoningEfforts above: setting max without the model
+    # declaring it throws UNSUPPORTED_REASONING_EFFORT at request time.
+    reasoningEffort: max
