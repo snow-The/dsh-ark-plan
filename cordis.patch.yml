@@ -15,6 +15,12 @@
         models:
           - id: deepseek-v4-flash
             name: deepseek-v4-flash
+            # Model specs: 1M context window, 256K max output (Ark accepts up
+            # to 393216 output). Without these the pi-ai defaults apply
+            # (contextWindow 262144, maxTokens 32768) and the model is treated
+            # as a 256K/32K model instead of its real 1M/256K capability.
+            contextWindow: 1048576
+            maxTokens: 262144
             # Without this, the model is judged non-reasoning and the pi-ai
             # responses adapter skips the whole reasoning branch — effort is
             # never sent and the endpoint silently uses its default (high).

@@ -52,15 +52,26 @@ The doctor also live-probes the endpoint — expect `serverModel` =
 `deepseek-v4-flash-ga-<date>` (e.g. `...-ga-260731`) and a returned reasoning
 block.
 
-## The two traps this plugin encodes
+## The traps this plugin encodes
 
 | Trap | Symptom if missed |
 |---|---|
 | **`reasoningEfforts` must be declared on the ark model** — otherwise pi-ai judges the model non-reasoning and its openai-responses adapter skips the whole reasoning branch. The request carries no effort, and the server silently uses its default (`high`). | effort=max never actually reaches the model |
 | **`reasoningEffort: max` must accompany `reasoningEfforts`** — setting max without the model declaring it makes `resolveReasoningLevel` throw `UNSUPPORTED_REASONING_EFFORT`. | requests error out |
+| **`contextWindow` / `maxTokens` must be declared** — the model's real spec is **1M context / 256K output**, but pi-ai's defaults are `contextWindow 262144` and `maxTokens 32768`. Without declaration DSH silently treats the model as a 256K/32K model. (Ark accepts `max_output_tokens` up to 393216; 262144 = the model's advertised 256K output.) | context shows 256K, output capped at 32K |
 
 Also encoded: the bare id `deepseek-v4-flash` is resolved by Ark to the latest
 GA snapshot (currently `deepseek-v4-flash-ga-260731`, i.e. the 0731 build).
+
+## Protocol note
+
+The route speaks `openai-responses` (the same protocol family as the
+DeepSeek official API) pointed at Ark's plan URL
+(`https://ark.cn-beijing.volces.com/api/plan/v3`). Ark's plan API is
+OpenAI-Responses-compatible, so the DeepSeek-style provider settings work
+as-is with only the base URL swapped — verified live (thinking block
+returned with `reasoning.effort=max`, model resolves to
+`deepseek-v4-flash-ga-260731`).
 
 ## How the defaults work
 
