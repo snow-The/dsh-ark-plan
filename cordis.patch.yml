@@ -17,16 +17,21 @@
         # built-in deepseek protocol (openai-completions, deepseek thinking
         # format) works against it as-is — verified live.
         baseURL: https://ark.cn-beijing.volces.com/api/plan/v3
-        apiKeyEnv: DEEPSEEK_API_KEY
+        # Dedicated key env so the ark route never collides with the official
+        # route's DEEPSEEK_API_KEY (sk-...): fill ARK_API_KEY with the ark-...
+        # key from the Volcano console. Official route keeps DEEPSEEK_API_KEY.
+        apiKeyEnv: ARK_API_KEY
         # models intentionally omitted: the installed catalog supplies
         # deepseek-v4-flash / deepseek-v4-pro with reasoningEfforts (max),
         # contextWindow 1000000 and maxTokens 384000.
 - id: agent-default-model
   config:
-    # deepseek-official = pi-ai's built-in route (api.deepseek.com). With the
-    # baseURL override above pointing at Ark, both the default model and the
-    # ark route come from the same deepseek family. If you run vision
-    # wrappers (modlens / vision-toolkit), pick their variant provider here.
+    # deepseek-official = pi-ai's built-in route (api.deepseek.com, official
+    # key). Default stays on the official route; the ark route above is the
+    # budget lane — switch the model picker to the "deepseek" provider's
+    # DeepSeek V4 Flash(ARK) to burn the ark plan tokens instead. If you run
+    # vision wrappers (modlens / vision-toolkit), pick their variant
+    # provider here (e.g. vision-toolkit-deepseek-official).
     provider: deepseek-official
     model: deepseek-v4-flash
     # Effort max rides on the built-in catalog's reasoning support (no manual

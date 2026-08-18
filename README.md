@@ -1,62 +1,63 @@
 # dsh-ark-plan
 
-Correctly activate **DeepSeek v4 flash** on the **Volcano Ark plan API**
-(`https://ark.cn-beijing.volces.com/api/plan/v3`) for DeepSeek Harness.
+Activate **DeepSeek v4 flash** on the **Volcano Ark plan API**
+(`https://ark.cn-beijing.volces.com/api/plan/v3`) in DeepSeek Harness —
+the budget lane: 10× cheaper off-peak token bundles for the same model.
 
-## Strategy (v0.2): built-in route + baseURL override
+## Strategy: built-in route + baseURL override (no custom provider)
 
-No custom provider is created. The plugin reuses **pi-ai's built-in `deepseek`
-provider** — which already knows the models (reasoning incl. effort=max, 1M
-context, 384K output) — and only overrides `baseURL` to point at Ark's plan
-API. A fresh profile ends up with exactly what you would hand-write:
+The plugin reuses **pi-ai's built-in `deepseek` provider** — which already
+knows the models (reasoning incl. effort=max, 1M context, 384K output) — and
+only overrides `baseURL` to point at Ark's plan API. No hand-rolled "ark"
+provider, nothing to re-declare, nothing to silently degrade.
 
-```yaml
-llm-pi-ai:
-  providers:
-    deepseek:                  # pi-ai built-in models inherited
-      baseURL: https://ark.cn-beijing.volces.com/api/plan/v3
-      apiKeyEnv: DEEPSEEK_API_KEY
-agent-default-model:
-  provider: deepseek-official
-  model: deepseek-v4-flash
-  reasoningEffort: max
-```
+Two lanes coexist:
 
-Why this beats a hand-rolled "ark" provider: pi-ai's catalog already declares
-the deepseek models' reasoning support (`thinkingLevelMap` includes `max`),
-context window (1M) and output cap (384K) — none of it needs re-declaring,
-and nothing can silently degrade.
+| Lane | Provider | baseURL | Key env | Key prefix |
+|---|---|---|---|---|
+| Official (default) | `deepseek-official` | api.deepseek.com | `DEEPSEEK_API_KEY` | `sk-...` |
+| Ark budget | `deepseek` (DeepSeek V4 Flash(ARK)) | ark plan API | `ARK_API_KEY` | `ark-...` |
 
-## The traps this plugin encodes
-
-| Trap | Symptom if missed |
-|---|---|
-| **Stale standalone `ark` provider** (v0.1 layout) | A duplicate "ark \| 自定义" entry shows up in the Models page with a red dot. Remove the `llm-pi-ai.providers.ark` block. |
-| **`reasoningEffort: max` not set** | Thinking runs at the endpoint default (high), not max. |
-| **Wrong key family for the baseURL** | `sk-...` (official DeepSeek) against the ark baseURL → `401 AuthenticationError`; `ark-...` against `api.deepseek.com` → 401 too. Match the key to the endpoint. |
-| **baseURL not the ark plan API** | The plugin does nothing if `deepseek.baseURL` points at `api.deepseek.com` — that is just the official route. |
-
-Also encoded: the bare id `deepseek-v4-flash` is resolved by Ark to the latest
-GA snapshot (currently `deepseek-v4-flash-ga-260731`, i.e. the 0731 build).
+Default model stays on the official route; the ark lane is there to burn the
+cheap plan tokens when you want them — switch the model picker to the
+`deepseek` provider's models to use it, then switch back when the bundle runs
+out (don't buy more: the plan's value ends there).
 
 ## Install
 
 ```bash
 dsh plugin --profile web add github:snow-The/dsh-ark-plan
-# restart dsh web, then set your key
+# restart dsh web
 ```
 
-Key: put the **ark- key** in `DEEPSEEK_API_KEY` (or whatever
-`llm-pi-ai.providers.deepseek.apiKeyEnv` names) via the Models page or
-`~/.dsh/.credentials.yaml`.
+## Configure keys
+
+```yaml
+# ~/.dsh/.credentials.yaml (or the Models page)
+DEEPSEEK_API_KEY: sk-...      # official DeepSeek key (official lane)
+ARK_API_KEY: ark-...          # Volcano Ark plan key (ark lane)
+```
+
+The two envs are deliberately separate — a `sk-` key against the ark
+baseURL answers `401 AuthenticationError` and vice versa.
 
 ## Verify
 
 Ask your agent to run `ark_plan_doctor`. It reads the current config, flags
-the traps above (including any stale `ark` provider), and live-tests
-ark `/chat/completions` with the deepseek thinking format
-(`thinking.type=enabled` + `reasoning_effort=max`) — expect
-`serverModel` = `deepseek-v4-flash-ga-<date>` and `thinking: true`.
+the known mistakes, and live-tests ark `/chat/completions` with the deepseek
+thinking format (`thinking.type=enabled` + `reasoning_effort=max`) — expect
+`serverModel` = `deepseek-v4-flash-ga-<date>` (e.g. `...-ga-260731`, the 0731
+build) and `thinking: true`.
+
+## Traps this plugin encodes
+
+| Trap | Symptom if missed |
+|---|---|
+| **Stale standalone `ark` provider** (v0.1 layout) | A duplicate "ark \| 自定义" entry in the Models page with a red dot. Remove `llm-pi-ai.providers.ark`. |
+| **`reasoningEffort: max` not set** | Thinking runs at the endpoint default (high), not max. |
+| **Wrong key family for the baseURL** | `sk-...` against ark → 401; `ark-...` against api.deepseek.com → 401. Match key to endpoint. |
+| **`ARK_API_KEY` missing** | The ark lane exists but answers 401 until its key is filled. |
+| **baseURL not the ark plan API** | Plugin defaults do nothing if `deepseek.baseURL` points at `api.deepseek.com` — that's just the official route. |
 
 ## How the defaults work
 
