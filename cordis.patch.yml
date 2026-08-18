@@ -1,40 +1,35 @@
 # dsh-ark-plan — activate DeepSeek v4 flash on the Volcano Ark plan API.
 #
+# Strategy: reuse pi-ai's BUILT-IN "deepseek" provider (which already knows
+# the models: reasoning support incl. effort=max, 1M context, 384K output)
+# and only override baseURL to point at Ark's plan API. No separate "ark"
+# provider is created — a fresh profile gets exactly the same shape a user
+# would hand-write: deepseek route + ark URL + effort=max.
+#
 # These are DEFAULTS: dsh-settings registers the entry config as the base of
 # each settings section, so a user's own settings.yaml always wins over these
-# values. A fresh profile gets a working ark route + reasoningEffort=max with
-# no manual YAML; a profile that already configures the same keys keeps its own.
+# values. A profile that already configures the same keys keeps its own.
 - id: llm-pi-ai
   config:
     providers:
-      ark:
-        displayName: ark
-        apiKeyEnv: ARK_API_KEY
-        api: openai-responses
+      deepseek:
+        # Ark plan API is OpenAI-Responses/chat-completions compatible, so the
+        # built-in deepseek protocol (openai-completions, deepseek thinking
+        # format) works against it as-is — verified live.
         baseURL: https://ark.cn-beijing.volces.com/api/plan/v3
-        models:
-          - id: deepseek-v4-flash
-            name: deepseek-v4-flash
-            # Model specs: 1M context window, 256K max output (Ark accepts up
-            # to 393216 output). Without these the pi-ai defaults apply
-            # (contextWindow 262144, maxTokens 32768) and the model is treated
-            # as a 256K/32K model instead of its real 1M/256K capability.
-            contextWindow: 1048576
-            maxTokens: 262144
-            # Without this, the model is judged non-reasoning and the pi-ai
-            # responses adapter skips the whole reasoning branch — effort is
-            # never sent and the endpoint silently uses its default (high).
-            reasoningEfforts:
-              low: low
-              high: high
-              max: max
+        apiKeyEnv: DEEPSEEK_API_KEY
+        # models intentionally omitted: the installed catalog supplies
+        # deepseek-v4-flash / deepseek-v4-pro with reasoningEfforts (max),
+        # contextWindow 1000000 and maxTokens 384000.
 - id: agent-default-model
   config:
-    # modlens-ark = the @liustack/modlens vision wrapper around the ark route
-    # (gives the text-only model image-input capability). Without modlens
-    # installed, point this at the plain "ark" provider instead.
-    provider: modlens-ark
+    # deepseek-official = pi-ai's built-in route (api.deepseek.com). With the
+    # baseURL override above pointing at Ark, both the default model and the
+    # ark route come from the same deepseek family. If you run vision
+    # wrappers (modlens / vision-toolkit), pick their variant provider here.
+    provider: deepseek-official
     model: deepseek-v4-flash
-    # Must accompany reasoningEfforts above: setting max without the model
-    # declaring it throws UNSUPPORTED_REASONING_EFFORT at request time.
+    # Effort max rides on the built-in catalog's reasoning support (no manual
+    # reasoningEfforts needed on this route) — pi-ai sends
+    # thinking.type=enabled + reasoning_effort=max on the completions wire.
     reasoningEffort: max
